@@ -17,5 +17,5 @@ features = [
   "HtmlCanvasElement", "WebGlRenderingContext", "WebGlProgram",
   "WebGlShader", "WebGlBuffer", "WebGlUniformLocation",
   "WheelEvent", "MouseEvent", "Event", "EventTarget",
-  "DomRect",
+  "DomRect", "console"
 ]
