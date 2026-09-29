@@ -350,3 +350,189 @@ pub fn start() -> Result<(), JsValue> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn view_is_finite_for_normal_values() {
+        let view = View {
+            zoom: 1.0,
+            x: 0.0,
+            y: 0.0,
+        };
+
+        assert!(view.is_finite());
+    }
+
+    #[test]
+    fn view_is_not_finite_for_nan_zoom() {
+        let view = View {
+            zoom: f32::NAN,
+            x: 0.0,
+            y: 0.0,
+        };
+
+        assert!(!view.is_finite());
+    }
+
+    #[test]
+    fn view_is_not_finite_for_infinite_x() {
+        let view = View {
+            zoom: 1.0,
+            x: f32::INFINITY,
+            y: 0.0,
+        };
+
+        assert!(!view.is_finite());
+    }
+
+    #[test]
+    fn view_is_not_finite_for_negative_infinite_y() {
+        let view = View {
+            zoom: 1.0,
+            x: 0.0,
+            y: f32::NEG_INFINITY,
+        };
+
+        assert!(!view.is_finite());
+    }
+
+    #[test]
+    fn zoom_is_clamped_to_minimum() {
+        let view = View {
+            zoom: 0.1,
+            x: 0.0,
+            y: 0.0,
+        }
+        .clamped();
+
+        assert_eq!(view.zoom, MIN_ZOOM);
+    }
+
+    #[test]
+    fn zoom_is_clamped_to_maximum() {
+        let view = View {
+            zoom: 100.0,
+            x: 0.0,
+            y: 0.0,
+        }
+        .clamped();
+
+        assert_eq!(view.zoom, MAX_ZOOM);
+    }
+
+    #[test]
+    fn zoom_inside_range_is_unchanged() {
+        let view = View {
+            zoom: 2.0,
+            x: 0.0,
+            y: 0.0,
+        }
+        .clamped();
+
+        assert_eq!(view.zoom, 2.0);
+    }
+
+    #[test]
+    fn pan_is_clamped_based_on_zoom() {
+        let view = View {
+            zoom: 2.0,
+            x: 100.0,
+            y: -100.0,
+        }
+        .clamped();
+
+        let limit = PAN_LIMIT * 2.0;
+
+        assert_eq!(view.x, limit);
+        assert_eq!(view.y, -limit);
+    }
+
+    #[test]
+    fn pan_inside_limit_is_unchanged() {
+        let view = View {
+            zoom: 2.0,
+            x: 3.0,
+            y: -3.0,
+        }
+        .clamped();
+
+        assert_eq!(view.x, 3.0);
+        assert_eq!(view.y, -3.0);
+    }
+
+    #[test]
+    fn pan_limit_changes_with_zoom() {
+        let view = View {
+            zoom: 0.5,
+            x: 10.0,
+            y: -10.0,
+        }
+        .clamped();
+
+        let limit = PAN_LIMIT * 0.5;
+
+        assert_eq!(view.zoom, 0.5);
+        assert_eq!(view.x, limit);
+        assert_eq!(view.y, -limit);
+    }
+
+    #[test]
+    fn clamped_view_remains_finite() {
+        let view = View {
+            zoom: 1.0,
+            x: 1.0,
+            y: -1.0,
+        }
+        .clamped();
+
+        assert!(view.is_finite());
+    }
+
+    #[test]
+    fn minimum_zoom_has_expected_pan_limit() {
+        let view = View {
+            zoom: MIN_ZOOM,
+            x: 100.0,
+            y: -100.0,
+        }
+        .clamped();
+
+        let expected_limit = PAN_LIMIT * MIN_ZOOM;
+
+        assert_eq!(view.x, expected_limit);
+        assert_eq!(view.y, -expected_limit);
+    }
+
+    #[test]
+    fn maximum_zoom_has_expected_pan_limit() {
+        let view = View {
+            zoom: MAX_ZOOM,
+            x: 100.0,
+            y: -100.0,
+        }
+        .clamped();
+
+        let expected_limit = PAN_LIMIT * MAX_ZOOM;
+
+        assert_eq!(view.x, expected_limit);
+        assert_eq!(view.y, -expected_limit);
+    }
+
+    #[test]
+    fn view_can_be_copied() {
+        let original = View {
+            zoom: 2.0,
+            x: 1.0,
+            y: -1.0,
+        };
+
+        let copy = original;
+
+        assert_eq!(original.zoom, copy.zoom);
+        assert_eq!(original.x, copy.x);
+        assert_eq!(original.y, copy.y);
+    }
+}
