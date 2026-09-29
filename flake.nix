@@ -19,7 +19,10 @@
             pkgs.clippy
             pkgs.cargo
             pkgs.wasm-pack
+
             pkgs.python3
+            pkgs.just
+            pkgs.watchexec
           ];
         };
       }
