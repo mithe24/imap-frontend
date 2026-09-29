@@ -15,5 +15,7 @@ features = [
   "Window", "Document", "Element", "EventTarget",
   "HtmlElement", "Node",
   "HtmlCanvasElement", "WebGlRenderingContext", "WebGlProgram",
-  "WebGlShader", "WebGlBuffer",
+  "WebGlShader", "WebGlBuffer", "WebGlUniformLocation",
+  "WheelEvent", "MouseEvent", "Event", "EventTarget",
+  "DomRect",
 ]
