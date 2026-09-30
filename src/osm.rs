@@ -3,7 +3,7 @@ use serde::Deserialize;
 use wasm_bindgen::JsValue;
 
 const OVERPASS_URL: &str = "https://overpass-api.de/api/interpreter";
-const SDU_BBOX: (f64, f64, f64, f64) = (55.3640, 10.4260, 55.3730, 10.4380);
+const SDU_BBOX: (f64, f64, f64, f64) = (55.36269, 10.4220, 55.371464, 10.4342);
 
 #[derive(Debug, Deserialize)]
 struct OverpassResponse {
