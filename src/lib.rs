@@ -1,12 +1,14 @@
-use std::cell::Cell;
+mod osm;
+
+use std::cell::{Cell, RefCell};
 use std::rc::Rc;
 
 use wasm_bindgen::JsCast;
 use wasm_bindgen::prelude::*;
 use web_sys::js_sys;
 use web_sys::{
-    HtmlCanvasElement, MouseEvent, WebGlProgram, WebGlRenderingContext as GL,
-    WebGlShader, WheelEvent,
+    HtmlCanvasElement, MouseEvent, WebGlBuffer, WebGlProgram,
+    WebGlRenderingContext as GL, WebGlShader, WheelEvent,
 };
 
 const MIN_ZOOM: f32 = 0.4;
@@ -135,6 +137,7 @@ pub fn start() -> Result<(), JsValue> {
         uniform vec2 offset;
         void main() {
             gl_Position = vec4(position * zoom + offset, 0.0, 1.0);
+            gl_PointSize = 4.0; 
         }
         "#,
     )?;
@@ -178,6 +181,9 @@ pub fn start() -> Result<(), JsValue> {
         .get_uniform_location(&program, "offset")
         .ok_or_else(|| err("uniform `offset` not found in shader program"))?;
 
+    let points: Rc<RefCell<Option<(WebGlBuffer, i32)>>> =
+        Rc::new(RefCell::new(None));
+
     let view = Rc::new(Cell::new(View {
         zoom: 1.0,
         x: 0.0,
@@ -187,6 +193,8 @@ pub fn start() -> Result<(), JsValue> {
     let redraw: Rc<dyn Fn()> = {
         let view = Rc::clone(&view);
         let gl = gl.clone();
+        let buffer = buffer.clone();
+        let points = Rc::clone(&points);
         Rc::new(move || {
             if gl.is_context_lost() {
                 log_error(
@@ -200,7 +208,30 @@ pub fn start() -> Result<(), JsValue> {
             gl.uniform2f(Some(&offset_loc), v.x, v.y);
             gl.clear_color(0.1, 0.1, 0.15, 1.0);
             gl.clear(GL::COLOR_BUFFER_BIT);
+
+            gl.bind_buffer(GL::ARRAY_BUFFER, Some(&buffer));
+            gl.vertex_attrib_pointer_with_i32(
+                position_loc,
+                2,
+                GL::FLOAT,
+                false,
+                0,
+                0,
+            );
             gl.draw_arrays(GL::TRIANGLES, 0, 3);
+
+            if let Some((points_buffer, count)) = points.borrow().as_ref() {
+                gl.bind_buffer(GL::ARRAY_BUFFER, Some(points_buffer));
+                gl.vertex_attrib_pointer_with_i32(
+                    position_loc,
+                    2,
+                    GL::FLOAT,
+                    false,
+                    0,
+                    0,
+                );
+                gl.draw_arrays(GL::POINTS, 0, *count);
+            }
 
             let code = gl.get_error();
             if code != GL::NO_ERROR {
@@ -209,6 +240,51 @@ pub fn start() -> Result<(), JsValue> {
         })
     };
     redraw();
+
+    // temporary draw of the points from the osm fetch
+    // flatten the points, create buffer and bind to gl
+    // update and mutate points for redraw to redraw
+    {
+        let gl = gl.clone();
+        let points = Rc::clone(&points);
+        let redraw = Rc::clone(&redraw);
+        wasm_bindgen_futures::spawn_local(async move {
+            match osm::fetch_sdu_map_data().await {
+                Ok(ways) => {
+                    let flat = osm::flatten_points(&ways);
+                    let count = (flat.len() / 2) as i32;
+
+                    let points_buffer = match gl.create_buffer() {
+                        Some(b) => b,
+                        None => {
+                            log_error("could not create points buffer");
+                            return;
+                        }
+                    };
+                    gl.bind_buffer(GL::ARRAY_BUFFER, Some(&points_buffer));
+                    gl.buffer_data_with_array_buffer_view(
+                        GL::ARRAY_BUFFER,
+                        &js_sys::Float32Array::from(&flat[..]),
+                        GL::STATIC_DRAW,
+                    );
+
+                    web_sys::console::log_1(
+                        &format!(
+                            "osm: fetched {} ways, {count} points",
+                            ways.len()
+                        )
+                        .into(),
+                    );
+
+                    *points.borrow_mut() = Some((points_buffer, count));
+                    redraw();
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&e);
+                }
+            }
+        });
+    }
 
     let on_wheel = {
         let view = Rc::clone(&view);
