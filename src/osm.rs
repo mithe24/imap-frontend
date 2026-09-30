@@ -34,8 +34,8 @@ fn err(msg: impl AsRef<str>) -> JsValue {
     JsValue::from_str(msg.as_ref())
 }
 
-/// Sends a raw Overpass QL query and returns the parsed response.
-/// Knows nothing about SDU specifically - reusable for any query string.
+/// Sends a raw Overpass QL query and returns the parsed response 
+/// Generalized to fetch from any bounding box
 async fn fetch_overpass(query: &str) -> Result<OverpassResponse, JsValue> {
     let request = Request::post(OVERPASS_URL)
         .header("Content-Type", "text/plain")
@@ -57,7 +57,7 @@ async fn fetch_overpass(query: &str) -> Result<OverpassResponse, JsValue> {
         .map_err(|e| err(e.to_string()))
 }
 
-/// Builds an Overpass QL query for roads/paths within a bounding box.
+/// Builds an Overpass query for roads/paths within a bounding box
 /// `out geom;` makes Overpass attach lat/lon to every point of every way
 /// directly, so we don't have to resolve node ids ourselves.
 fn build_query(bbox: (f64, f64, f64, f64)) -> String {
@@ -65,7 +65,7 @@ fn build_query(bbox: (f64, f64, f64, f64)) -> String {
     format!("[out:json];way[highway]({south},{west},{north},{east});out geom;")
 }
 
-/// Fetches roads/paths for the SDU campus and returns them as simple ways.
+/// Fetch road and paths for SDU and returns as ways
 pub async fn fetch_sdu_map_data() -> Result<Vec<Way>, JsValue> {
     let query = build_query(SDU_BBOX);
     let response = fetch_overpass(&query).await?;

@@ -113,6 +113,20 @@ fn link_program(
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
+    // test fetching here
+    wasm_bindgen_futures::spawn_local(async {
+        match osm::fetch_sdu_map_data().await {
+            Ok(ways) => {
+                web_sys::console::log_1(
+                    &format!("osm: fetched {} ways", ways.len()).into(),
+                );
+            }
+            Err(e) => {
+                web_sys::console::error_1(&e);
+            }
+        }
+    });
+
     let canvas = document()?
         .get_element_by_id("canvas")
         .ok_or_else(|| err("element #canvas not found in the page"))?
