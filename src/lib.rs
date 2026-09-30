@@ -113,20 +113,6 @@ fn link_program(
 
 #[wasm_bindgen(start)]
 pub fn start() -> Result<(), JsValue> {
-    // test fetching here
-    wasm_bindgen_futures::spawn_local(async {
-        match osm::fetch_sdu_map_data().await {
-            Ok(ways) => {
-                web_sys::console::log_1(
-                    &format!("osm: fetched {} ways", ways.len()).into(),
-                );
-            }
-            Err(e) => {
-                web_sys::console::error_1(&e);
-            }
-        }
-    });
-
     let canvas = document()?
         .get_element_by_id("canvas")
         .ok_or_else(|| err("element #canvas not found in the page"))?
@@ -253,6 +239,51 @@ pub fn start() -> Result<(), JsValue> {
         })
     };
     redraw();
+
+    // temporary draw of the points from the osm fetch
+    // flatten the points, create buffer and bind to gl
+    // update and mutate points for redraw to redraw
+    {
+        let gl = gl.clone();
+        let points = Rc::clone(&points);
+        let redraw = Rc::clone(&redraw);
+        wasm_bindgen_futures::spawn_local(async move {
+            match osm::fetch_sdu_map_data().await {
+                Ok(ways) => {
+                    let flat = osm::flatten_points(&ways);
+                    let count = (flat.len() / 2) as i32;
+
+                    let points_buffer = match gl.create_buffer() {
+                        Some(b) => b,
+                        None => {
+                            log_error("could not create points buffer");
+                            return;
+                        }
+                    };
+                    gl.bind_buffer(GL::ARRAY_BUFFER, Some(&points_buffer));
+                    gl.buffer_data_with_array_buffer_view(
+                        GL::ARRAY_BUFFER,
+                        &js_sys::Float32Array::from(&flat[..]),
+                        GL::STATIC_DRAW,
+                    );
+
+                    web_sys::console::log_1(
+                        &format!(
+                            "osm: fetched {} ways, {count} points",
+                            ways.len()
+                        )
+                        .into(),
+                    );
+
+                    *points.borrow_mut() = Some((points_buffer, count));
+                    redraw();
+                }
+                Err(e) => {
+                    web_sys::console::error_1(&e);
+                }
+            }
+        });
+    }
 
     let on_wheel = {
         let view = Rc::clone(&view);
