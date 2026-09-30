@@ -59,7 +59,7 @@ pub fn flatten_points(ways: &[Way]) -> Vec<f32> {
     result
 }
 
-/// Sends a raw Overpass QL query and returns the parsed response 
+/// Sends a raw Overpass QL query and returns the parsed response
 /// Generalized to fetch from any bounding box
 async fn fetch_overpass(query: &str) -> Result<OverpassResponse, JsValue> {
     let request = Request::post(OVERPASS_URL)

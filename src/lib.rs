@@ -181,7 +181,8 @@ pub fn start() -> Result<(), JsValue> {
         .get_uniform_location(&program, "offset")
         .ok_or_else(|| err("uniform `offset` not found in shader program"))?;
 
-    let points: Rc<RefCell<Option<(WebGlBuffer, i32)>>> = Rc::new(RefCell::new(None));
+    let points: Rc<RefCell<Option<(WebGlBuffer, i32)>>> =
+        Rc::new(RefCell::new(None));
 
     let view = Rc::new(Cell::new(View {
         zoom: 1.0,
