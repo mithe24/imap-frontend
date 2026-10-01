@@ -218,7 +218,6 @@ pub fn start() -> Result<(), JsValue> {
                 0,
                 0,
             );
-            gl.draw_arrays(GL::TRIANGLES, 0, 3);
 
             if let Some((points_buffer, count)) = points.borrow().as_ref() {
                 gl.bind_buffer(GL::ARRAY_BUFFER, Some(points_buffer));
