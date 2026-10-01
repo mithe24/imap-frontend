@@ -87,7 +87,7 @@ async fn fetch_overpass(query: &str) -> Result<OverpassResponse, JsValue> {
 /// directly, so we don't have to resolve node ids ourselves.
 fn build_query(bbox: (f64, f64, f64, f64)) -> String {
     let (south, west, north, east) = bbox;
-    format!("[out:json];way[highway]({south},{west},{north},{east});out geom;")
+    format!("[out:json];way[building]({south},{west},{north},{east});out geom;")
 }
 
 /// Fetch road and paths for SDU and returns as ways
