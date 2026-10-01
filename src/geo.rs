@@ -31,7 +31,7 @@ pub struct Way {
 }
 
 #[derive(Debug, Clone, Copy)]
-struct Projection {
+pub struct Projection {
     origin: LatLon,
     cos_lat: f64,
 }
