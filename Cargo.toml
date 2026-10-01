@@ -12,6 +12,7 @@ wasm-bindgen-futures = "0.4" # run async
 gloo-net = "0.6" # for HTTP call
 serde = { version = "1", features = ["derive"] } # deserialzartion of Overpass response
 serde_json = "1"
+wgpu = "30.0.1"
 
 [dependencies.web-sys]
 version = "0.3"
