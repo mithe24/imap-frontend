@@ -1,6 +1,9 @@
+mod camera;
 mod error;
 mod geo;
+mod mesh;
 mod overpass;
+mod renderer;
 
 use crate::geo::Bbox;
 
